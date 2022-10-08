@@ -19,7 +19,7 @@ const columns = [
 const deleteFetchInit = Object.assign({}, defaultFetchInit, { 'method': 'DELETE' });
 
 async function getSessions() {
-    return fetch(`${endpoint}?output_mode=json&count=0&f=userName&f=timeAccessed`, {
+    return fetch(`${endpoint}?output_mode=json&count=0`, {
         ...defaultFetchInit,
     }).then(handleResponse(200))
 }
