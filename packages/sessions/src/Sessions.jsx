@@ -9,17 +9,16 @@ import { defaultFetchInit, handleError, handleResponse } from '@splunk/splunk-ut
 
 const endpoint = `${window.$C.SPLUNKD_PATH}/services/authentication/httpauth-tokens`;
 
-const columns = [
+const COLUMNS = [
     { sortKey: 'userName', label: 'User Name' },
     { sortKey: 'sessionsCount', label: 'Sessions' },
-    { sortKey: 'searchesCount', label: 'Searches' },
     { sortKey: 'minTime', label: 'Oldest Use' },
 ];
 
 const deleteFetchInit = Object.assign({}, defaultFetchInit, { 'method': 'DELETE' });
 
 async function getSessions() {
-    return fetch(`${endpoint}?output_mode=json&count=0`, {
+    return fetch(`${endpoint}?output_mode=json&count=0&f=userName&f=timeAccessed&search=searchId%3D""`, {
         ...defaultFetchInit,
     }).then(handleResponse(200))
 }
@@ -34,7 +33,7 @@ async function removeSession(id) {
 const Sessions = () => {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
-    const [sortKey, setSortKey] = useState('timeAccessed');
+    const [sortKey, setSortKey] = useState('userName');
     const [sortDir, setSortDir] = useState('desc');
     const [error, setError] = useState(false);
 
@@ -44,21 +43,17 @@ const Sessions = () => {
                 if (!(entry.content.userName in x)) {
                     x[entry.content.userName] = {
                         'sessions': [],
-                        'searches': [],
-                        'maxTime': entry.content.timeAccessed,
                         'minTime': entry.content.timeAccessed,
-                        'aTime': entry.content.timeAccessed
+                        //'maxTime': entry.content.timeAccessed,
                     }
                 }
-                const type = entry.content.searchId == "" ? 'sessions' : 'searches';
-                x[entry.content.userName][type].push({
+                x[entry.content.userName]['sessions'].push({
                     "id": entry.name,
-                    "timeAccessed": entry.content.timeAccessed,
-                    "searchId": entry.content.searchId, //Maybe redundant
+                    "timeAccessed": entry.content.timeAccessed
                 })
-                if (entry.content.timeAccessed > x[entry.content.userName]['maxTime']) {
-                    x[entry.content.userName]['maxTime'] = entry.content.timeAccessed
-                }
+                //if (entry.content.timeAccessed > x[entry.content.userName]['maxTime']) {
+                //    x[entry.content.userName]['maxTime'] = entry.content.timeAccessed
+                //}
                 if (entry.content.timeAccessed < x[entry.content.userName]['minTime']) {
                     x[entry.content.userName]['minTime'] = entry.content.timeAccessed
                 }
@@ -68,7 +63,6 @@ const Sessions = () => {
                 return Object.assign(data, {
                     userName: userName,
                     sessionsCount: data.sessions.length,
-                    searchesCount: data.searches.length,
                 })
             })
             setUsers(userArray);
@@ -97,36 +91,21 @@ const Sessions = () => {
             .then(refresh)
     };
 
-    const handleLogoutAll = (_, user) => {
-        Promise.all(['sessions', 'searches'].map(type => 
-            Promise.all(user[type].map((s) => 
-                removeSession(s.id)
-                .then(console.log(`Session ${s.id} removed`))
-                .catch(error => console.warn(`Failed to remove session ${s.id}, got status ${error.status}`))
-            ))
+    const handleLogoutAll = (_, sessions) => {
+        Promise.all(sessions.map((s) => 
+            removeSession(s.id)
+            .then(console.log(`Session ${s.id} removed`))
+            .catch(error => console.warn(`Failed to remove session ${s.id}, got status ${error.status}`))
         )).then(refresh)
     };
 
-    const sessionCell = (s, field) => {
-        if (s) {
-            return (
-                <Table.Cell onClick={handleLogout} data={s.id}>
-                    {s[field]}
-                </Table.Cell>
-            )
-        } else {
-            return <Table.Cell></Table.Cell>
-        }
-    }
-
     // style={{ borderTop: 'none' }} colSpan={1}
     const expandSession = (u) => {
-        return Array(Math.max(u.sessionsCount, u.searchesCount)).fill(0).map((_, x) => (
-            <Table.Row key={`${u.userName}-${x}`}>
+        return u.sessions.map((s) => (
+            <Table.Row key={`${u.userName}-${s.id}`}>
                 <Table.Cell></Table.Cell>
-                {sessionCell(u.sessions[x], 'timeAccessed')}
-                {sessionCell(u.searches[x], 'searchId')}
-                <Table.Cell colSpan={2}></Table.Cell>
+                <Table.Cell onClick={handleLogout} data={s.id}>Logout {s.timeAccessed}</Table.Cell>
+                <Table.Cell colSpan={COLUMNS.length-2}></Table.Cell>
             </Table.Row>
         ))
     }
@@ -142,7 +121,7 @@ const Sessions = () => {
             </ControlGroup>
             <Table stripeRows rowExpansion="single">
                 <Table.Head>
-                    {columns.map((column) => (
+                    {COLUMNS.map((column) => (
                         <Table.HeadCell
                             key={column.sortKey}
                             onSort={handleSort}
@@ -169,11 +148,8 @@ const Sessions = () => {
                         ))
                         .map(u => (
                             <Table.Row key={u.userName} expansionRow={expandSession(u)}>
-                                <Table.Cell>{u.userName}</Table.Cell>
-                                <Table.Cell>{u.sessionsCount}</Table.Cell>
-                                <Table.Cell>{u.searchesCount}</Table.Cell>
-                                <Table.Cell>{u.minTime}</Table.Cell>
-                                <Table.Cell onClick={handleLogoutAll} data={u}>Logout All</Table.Cell>
+                                { COLUMNS.map((c,x) => <Table.Cell key={x}>{u[c.sortKey]}</Table.Cell>) }
+                                <Table.Cell onClick={handleLogoutAll} data={u.sessions}>Logout All</Table.Cell>
                             </Table.Row>
                         ))}
                 </Table.Body>
