@@ -4,7 +4,7 @@ import Heading from '@splunk/react-ui/Heading';
 import Table from '@splunk/react-ui/Table';
 import Button from '@splunk/react-ui/Button';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
-import Modal from '@splunk/react-ui/Modal';
+import Clickable from '@splunk/react-ui/Clickable';
 import { defaultFetchInit, handleError, handleResponse } from '@splunk/splunk-utils/fetch';
 
 const endpoint = `${window.$C.SPLUNKD_PATH}/services/authentication/httpauth-tokens`;
@@ -13,24 +13,26 @@ const columns = [
     { sortKey: 'userName', label: 'User Name' },
     { sortKey: 'sessionsCount', label: 'Sessions' },
     { sortKey: 'searchesCount', label: 'Searches' },
+    { sortKey: 'minTime', label: 'Oldest Use' },
 ];
 
 const deleteFetchInit = Object.assign({}, defaultFetchInit, { 'method': 'DELETE' });
 
 async function getSessions() {
-    return fetch(`${endpoint}?output_mode=json&count=0`, {
+    return fetch(`${endpoint}?output_mode=json&count=0&f=userName&f=timeAccessed`, {
         ...defaultFetchInit,
     }).then(handleResponse(200))
 }
 
 async function removeSession(id) {
+    console.debug(`${endpoint}/${id}?output_mode=json`)
     return fetch(`${endpoint}/${id}?output_mode=json`, {
         ...deleteFetchInit
     }).then(handleResponse(200))
 }
 
 const Sessions = () => {
-    const [sessions, setSessions] = useState([]);
+    const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('timeAccessed');
     const [sortDir, setSortDir] = useState('desc');
@@ -38,31 +40,38 @@ const Sessions = () => {
 
     const refresh = () => {
         return getSessions().then((r) => {
-            const users = r.entry.reduce((users, entry) => {
-                console.log(users)
-                if (!(entry.content.userName in users)) {
-                    users[entry.content.userName] = {
+            const userDict = r.entry.reduce((x, entry) => {
+                if (!(entry.content.userName in x)) {
+                    x[entry.content.userName] = {
                         'sessions': [],
-                        'searches': []
+                        'searches': [],
+                        'maxTime': entry.content.timeAccessed,
+                        'minTime': entry.content.timeAccessed,
+                        'aTime': entry.content.timeAccessed
                     }
                 }
-                console.log(entry.content.searchId)
                 const type = entry.content.searchId == "" ? 'sessions' : 'searches';
-                users[entry.content.userName][type].push({
+                x[entry.content.userName][type].push({
                     "id": entry.name,
                     "timeAccessed": entry.content.timeAccessed,
                     "searchId": entry.content.searchId, //Maybe redundant
                 })
-                return users
+                if (entry.content.timeAccessed > x[entry.content.userName]['maxTime']) {
+                    x[entry.content.userName]['maxTime'] = entry.content.timeAccessed
+                }
+                if (entry.content.timeAccessed < x[entry.content.userName]['minTime']) {
+                    x[entry.content.userName]['minTime'] = entry.content.timeAccessed
+                }
+                return x
             }, {});
-            const list = Object.entries(users).map(([userName, data]) => {
+            const userArray = Object.entries(userDict).map(([userName, data]) => {
                 return Object.assign(data, {
                     userName: userName,
                     sessionsCount: data.sessions.length,
                     searchesCount: data.searches.length,
                 })
             })
-            setSessions(list);
+            setUsers(userArray);
         });
     }
 
@@ -70,23 +79,57 @@ const Sessions = () => {
         refresh()
     }, []);
 
-    const handleSearch = (e, { value: searchValue }) => {
+    const handleSearch = (_, { value: searchValue }) => {
         setSearch(searchValue);
     };
 
-    const handleSort = (e, col) => {
+    const handleSort = (_, col) => {
         setSortKey(col.sortKey)
         setSortDir((col.sortKey === sortKey && sortDir === 'asc') ? 'desc' : 'asc')
     };
 
-    const handleLogout = (e, name) => {
-        removeSession(name)
+    const handleLogout = (_, id) => {
+        removeSession(id)
             .then(() => {
-                console.log(`Session ${name} removed`)
+                console.log(`Session ${id} removed`)
             })
-            .catch((error) => { console.warn(`Failed to remove session ${name}, got status ${error.status}`) })
+            .catch((error) => { console.warn(`Failed to remove session ${id}, got status ${error.status}`) })
             .then(refresh)
     };
+
+    const handleLogoutAll = (_, user) => {
+        Promise.all(['sessions', 'searches'].map(type => 
+            Promise.all(user[type].map((s) => 
+                removeSession(s.id)
+                .then(console.log(`Session ${s.id} removed`))
+                .catch(error => console.warn(`Failed to remove session ${s.id}, got status ${error.status}`))
+            ))
+        )).then(refresh)
+    };
+
+    const sessionCell = (s, field) => {
+        if (s) {
+            return (
+                <Table.Cell onClick={handleLogout} data={s.id}>
+                    {s[field]}
+                </Table.Cell>
+            )
+        } else {
+            return <Table.Cell></Table.Cell>
+        }
+    }
+
+    // style={{ borderTop: 'none' }} colSpan={1}
+    const expandSession = (u) => {
+        return Array(Math.max(u.sessionsCount, u.searchesCount)).fill(0).map((_, x) => (
+            <Table.Row key={`${u.userName}-${x}`}>
+                <Table.Cell></Table.Cell>
+                {sessionCell(u.sessions[x], 'timeAccessed')}
+                {sessionCell(u.searches[x], 'searchId')}
+                <Table.Cell colSpan={2}></Table.Cell>
+            </Table.Row>
+        ))
+    }
 
     return (
         <>
@@ -97,7 +140,7 @@ const Sessions = () => {
                 <Search aria-controls="user-search" onChange={handleSearch} value={search} />
                 <Button selected appearance="primary" label="Manual Refresh" onClick={refresh} />
             </ControlGroup>
-            <Table stripeRows>
+            <Table stripeRows rowExpansion="single">
                 <Table.Head>
                     {columns.map((column) => (
                         <Table.HeadCell
@@ -112,7 +155,7 @@ const Sessions = () => {
                     <Table.HeadCell key="action">Action</Table.HeadCell>
                 </Table.Head>
                 <Table.Body>
-                    {sessions
+                    {users
                         .sort((rowA, rowB) => {
                             if (sortDir === 'asc') {
                                 return rowA[sortKey] > rowB[sortKey] ? 1 : -1;
@@ -121,15 +164,16 @@ const Sessions = () => {
                                 return rowB[sortKey] > rowA[sortKey] ? 1 : -1;
                             }
                             return 0;
-                        }).filter(s => (
-                            !search || s.userName.toLowerCase().includes(search.toLowerCase())
+                        }).filter(u => (
+                            !search || u.userName.toLowerCase().includes(search.toLowerCase())
                         ))
-                        .map(s => (
-                            <Table.Row key={s.userName}>
-                                <Table.Cell>{s.userName}</Table.Cell>
-                                <Table.Cell>{s.sessionsCount}</Table.Cell>
-                                <Table.Cell>{s.searchesCount}</Table.Cell>
-                                <Table.Cell onClick={handleLogout} data={s.name}>Logout All</Table.Cell>
+                        .map(u => (
+                            <Table.Row key={u.userName} expansionRow={expandSession(u)}>
+                                <Table.Cell>{u.userName}</Table.Cell>
+                                <Table.Cell>{u.sessionsCount}</Table.Cell>
+                                <Table.Cell>{u.searchesCount}</Table.Cell>
+                                <Table.Cell>{u.minTime}</Table.Cell>
+                                <Table.Cell onClick={handleLogoutAll} data={u}>Logout All</Table.Cell>
                             </Table.Row>
                         ))}
                 </Table.Body>
