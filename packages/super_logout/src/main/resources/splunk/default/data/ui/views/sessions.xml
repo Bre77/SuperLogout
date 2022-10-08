@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <view template="super_logout:/templates/sessions.html" type="html">
-	<label>Sessions</label>
+	<label>Super Logout</label>
 </view>

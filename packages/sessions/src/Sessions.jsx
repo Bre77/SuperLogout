@@ -99,21 +99,19 @@ const Sessions = () => {
         )).then(refresh)
     };
 
-    // style={{ borderTop: 'none' }} colSpan={1}
+    //  colSpan={1}
     const expandSession = (u) => {
         return u.sessions.map((s) => (
             <Table.Row key={`${u.userName}-${s.id}`}>
                 <Table.Cell></Table.Cell>
-                <Table.Cell onClick={handleLogout} data={s.id}>Logout {s.timeAccessed}</Table.Cell>
-                <Table.Cell colSpan={COLUMNS.length-2}></Table.Cell>
+                <Table.Cell onClick={handleLogout} data={s.id} colSpan={COLUMNS.length} style={{ paddingBottom: 6 }}>Logout {s.timeAccessed}</Table.Cell>
             </Table.Row>
         ))
     }
 
     return (
         <>
-            <Heading level={1}>Super Logout</Heading>
-            <p>Active sessions in Splunk are shown below. From here you can delete these sessions, which can be useful if an account has been removed.</p>
+            <p>Active HTTP authentication sessions on this Splunk server are shown below. With this tool you can remove these sessions, which is useful if an account has been removed from you identity provider. Search authentications are not shown intentionally, as terminating these has no value.</p>
             <ControlGroup label="Search for User">
 
                 <Search aria-controls="user-search" onChange={handleSearch} value={search} />
