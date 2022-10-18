@@ -92,10 +92,10 @@ const Sessions = () => {
     };
 
     const handleLogoutAll = (_, sessions) => {
-        Promise.all(sessions.map((s) => 
+        Promise.all(sessions.map((s) =>
             removeSession(s.id)
-            .then(console.log(`Session ${s.id} removed`))
-            .catch(error => console.warn(`Failed to remove session ${s.id}, got status ${error.status}`))
+                .then(console.log(`Session ${s.id} removed`))
+                .catch(error => console.warn(`Failed to remove session ${s.id}, got status ${error.status}`))
         )).then(refresh)
     };
 
@@ -111,7 +111,7 @@ const Sessions = () => {
 
     return (
         <>
-            <p>Active HTTP authentication sessions on this Splunk server are shown below. With this tool you can remove these sessions, which is useful if an account has been removed from you identity provider. Search authentications are not shown intentionally, as terminating these has no value.</p>
+            <p>Active HTTP authentication sessions on this Splunk server are shown below. With this tool you can remove these sessions, which is useful if an account has been removed from your identity provider. Search authentications are not shown intentionally, as terminating these has no value.</p>
             <ControlGroup label="Search for User">
 
                 <Search aria-controls="user-search" onChange={handleSearch} value={search} />
@@ -146,7 +146,7 @@ const Sessions = () => {
                         ))
                         .map(u => (
                             <Table.Row key={u.userName} expansionRow={expandSession(u)}>
-                                { COLUMNS.map((c,x) => <Table.Cell key={x}>{u[c.sortKey]}</Table.Cell>) }
+                                {COLUMNS.map((c, x) => <Table.Cell key={x}>{u[c.sortKey]}</Table.Cell>)}
                                 <Table.Cell onClick={handleLogoutAll} data={u.sessions}>Logout All</Table.Cell>
                             </Table.Row>
                         ))}
