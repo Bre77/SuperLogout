@@ -2,18 +2,18 @@ import React from 'react';
 
 import layout from '@splunk/react-page';
 import Sessions from '@splunk/sessions';
-import { getUserTheme, getThemeOptions } from '@splunk/splunk-utils/themes';
+import { getUserTheme } from '@splunk/splunk-utils/themes';
 
-import { StyledContainer } from './StartStyles';
+import { StyledContainer, GlobalStyle } from './styles';
 
 getUserTheme()
     .then((theme) => {
-        const splunkTheme = getThemeOptions(theme);
         layout(
             <StyledContainer>
+                <GlobalStyle />
                 <Sessions />
             </StyledContainer>,
-            splunkTheme
+            { theme }
         );
     })
     .catch((e) => {
