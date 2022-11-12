@@ -12,6 +12,5 @@ export const StyledContainer = styled.div`
 export const GlobalStyle = createGlobalStyle`
     body {
         background-color: ${variables.backgroundColorPage};
-        color: blue;
     }
 `
