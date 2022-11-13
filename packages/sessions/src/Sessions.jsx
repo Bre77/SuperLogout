@@ -4,13 +4,7 @@ import Table from '@splunk/react-ui/Table';
 import Button from '@splunk/react-ui/Button';
 import ControlGroup from '@splunk/react-ui/ControlGroup';
 import { defaultFetchInit, handleResponse } from '@splunk/splunk-utils/fetch';
-import {
-    useMutation,
-    useQuery,
-    QueryClient,
-    useQueryClient,
-    QueryClientProvider,
-} from '@tanstack/react-query';
+import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { splunkdPath } from '@splunk/splunk-utils/config';
 
 const endpoint = `${splunkdPath}/services/authentication/httpauth-tokens`;
@@ -59,7 +53,6 @@ export default () => {
 };
 
 const Sessions = () => {
-    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('userName');
     const [sortDir, setSortDir] = useState('desc');
@@ -99,12 +92,9 @@ const Sessions = () => {
         })
     );
 
-    const logout = useMutation({
-        mutationFn: removeSession,
-        onSuccess: () => queryClient.invalidateQueries(),
-    });
-    const handleLogout = (_, id) => logout.mutate(id);
-    const handleLogouts = (_, ids) => Promise.all(ids.map((s) => logout.mutate(s.id)));
+    const handleLogout = (_, id) => removeSession(id).then(refetch);
+    const handleLogouts = (_, ids) =>
+        Promise.all(ids.map((s) => removeSession(s.id))).then(refetch);
 
     const handleSearch = (_, { value }) => setSearch(value);
 
