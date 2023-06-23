@@ -1,7 +1,8 @@
 {
-  "name": "@splunk/super_logout",
-  "version": "0.0.1",
-  "license": "UNLICENSED",
+  "name": "super_logout",
+  "version": "1.0.0",
+  "splunkbaseid": 6617,
+  "license": "https://cdn.splunkbase.splunk.com/static/misc/eula.html",
   "scripts": {
     "build": "node bin/build.js build",
     "eslint": "eslint src --ext \".js,.jsx\"",
