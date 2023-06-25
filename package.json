@@ -1,17 +1,17 @@
 {
     "name": "super_logout",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "splunkbaseid": 6617,
     "license": "https://cdn.splunkbase.splunk.com/static/misc/eula.html",
     "scripts": {
-        "build": "node bin/build.js build",
+        "build": "NODE_OPTIONS=--openssl-legacy-provider node bin/build.js build",
         "eslint": "eslint src --ext \".js,.jsx\"",
         "eslint:ci": "yarn run eslint -f junit -o test-reports/lint-results.xml",
         "eslint:fix": "eslint src --ext \".js, .jsx\" --fix",
         "link:app": "node bin/build.js link",
         "lint": "yarn run eslint && yarn run stylelint",
         "lint:ci": "yarn run eslint:ci && yarn run stylelint",
-        "start": "webpack --watch",
+        "start": "NODE_OPTIONS=--openssl-legacy-provider webpack --watch",
         "stylelint": "stylelint \"src/**/*.{js,jsx}\" --config stylelint.config.js"
     },
     "dependencies": {
