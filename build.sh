@@ -1,8 +1,8 @@
 #!/bin/bash
 cd "${0%/*}"
 OUTPUT="${1:-super_logout.spl}"
-yarn install --non-interactive
-yarn run build
+pnpm install
+pnpm build
 chmod -R u=rwX,go= stage/*
 chmod -R u-x+X stage/*
 chmod -R u=rwx,go= stage/bin/*

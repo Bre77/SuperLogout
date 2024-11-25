@@ -8,7 +8,7 @@ const commands = ['build', 'link'];
 
 if (!arg) {
     shell.echo(
-        `No command received, please supply a command to run. \nCommands: ${commands.join(', ')}`
+        `No command received, please supply a command to run. \nCommands: ${commands.join(', ')}`,
     );
     shell.exit(1);
 }
@@ -21,11 +21,11 @@ if (!commands.includes(arg)) {
 // prettier-ignore
 const runCommands = {
     win32: {
-        build: () => shell.exec('set NODE_ENV=production&&.\\node_modules\\.bin\\webpack -p'),
+        build: () => shell.exec('set NODE_ENV=production&&.\\node_modules\\.bin\\webpack --mode=production'),
         link: () => shell.exec('mklink /D "%SPLUNK_HOME%\\etc\\apps\\super_logout" "%cd%\\stage"'),
     },
     nix: {
-        build: () => shell.exec('export NODE_ENV=production && ./node_modules/.bin/webpack -p'),
+        build: () => shell.exec('export NODE_ENV=production && ./node_modules/.bin/webpack --mode=production'),
         link: () => shell.exec('ln -s $PWD/stage $SPLUNK_HOME/etc/apps/super_logout'),
     },
 };

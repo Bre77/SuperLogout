@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const webpackMerge = require('webpack-merge');
+const { merge: webpackMerge } = require("webpack-merge");
 const baseConfig = require('@splunk/webpack-configs/base.config').default;
 const TerserPlugin = require("terser-webpack-plugin");
 
